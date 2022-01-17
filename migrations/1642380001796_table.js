@@ -2,7 +2,8 @@
 
 exports.up = (pgm) => {
     pgm.createTable('products', {
-        sku: { type: 'varchar(250)', notNull: true, primaryKey: true },
+        id: 'id',
+        sku: { type: 'varchar(250)', notNull: true, unique: true },
         name: { type: 'varchar(250)', notNull: true },
         image: {
             type: 'varchar(250)',
@@ -27,12 +28,13 @@ exports.up = (pgm) => {
     })
     pgm.createTable('transactions', {
         id: 'id',
-        sku: {
-            type: 'varchar(250)',
+        productid: {
+            type: 'integer',
             notNull: true,
             references: '"products"',
             onDelete: 'cascade',
         },
+        sku: { type: 'varchar(250)', notNull: true },
         qty: { type: 'integer', notNull: true },
         amount: {
             type: 'integer',
@@ -44,5 +46,5 @@ exports.up = (pgm) => {
             default: pgm.func('current_timestamp'),
         },
     })
-    pgm.createIndex('transactions', 'sku')
+    pgm.createIndex('transactions', 'productId')
 }

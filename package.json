@@ -7,15 +7,22 @@
     "@hapi/hapi": "^20.2.1",
     "@hapi/jwt": "^2.1.0",
     "axios": "^0.24.0",
+    "chai": "^4.3.4",
+    "chai-http": "^4.3.0",
     "jsonwebtoken": "^8.5.1",
+    "mocha": "^9.1.4",
     "node-pg-migrate": "^6.2.1",
     "pg": "^8.7.1",
     "pg-promise": "^10.11.1",
     "xml2js": "^0.4.23"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@hapi/code": "^8.0.5",
+    "@hapi/lab": "^24.5.0"
+  },
   "scripts": {
-    "migrate":"node-pg-migrate"
+    "migrate": "node-pg-migrate",
+    "test": "lab -v test/example.test.js"
   },
   "author": "",
   "license": "ISC"

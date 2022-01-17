@@ -19,7 +19,7 @@ const parser = (xml) => {
     })
 }
 
-const init = async () => {
+exports.init = async () => {
     const server = Hapi.server({
         port: 3000,
         host: 'localhost'
@@ -73,11 +73,6 @@ const init = async () => {
                             } catch (error) {
                                 console.log(error)
                             }
-                            // console.log({
-                            //     name: row.prdNm,
-                            //     stock: row.prdSelQty,
-                            //     price: row.selPrc,
-                            // })
                         });
                         let data = obj.Products.product.map(row => {
                             return {
@@ -177,11 +172,11 @@ const init = async () => {
         {
             // Detail Product
             method: 'GET',
-            path: '/product/{code}',
+            path: '/product/{id}',
             config: {
                 handler: async (request, h) => {
-                    const { code } = request.params
-                    const product = await db.query("SELECT * FROM products WHERE sku=$1", [code])
+                    const { id } = request.params
+                    const product = await db.query("SELECT * FROM products WHERE id=$1", [id])
                     const res = h.response({
                         error: false,
                         data: product.rows[0]
@@ -196,13 +191,13 @@ const init = async () => {
         {
             // Update product
             method: 'PUT',
-            path: '/product/{code}',
+            path: '/product/{id}',
             config: {
                 handler: async (request, h) => {
                     try {
-                        const { code } = request.params
+                        const { id } = request.params
                         const { name, sku, image, price } = request.payload
-                        await db.query('UPDATE product SET name=$1,sku=$2,image=$3,price=$4 WHERE sku=$5', [name, sku, image, price, code])
+                        await db.query('UPDATE product SET name=$1,sku=$2,image=$3,price=$4 WHERE id=$5', [name, sku, image, price, id])
                         return h.response({
                             error: false,
                             msg: 'update success!'
@@ -222,12 +217,12 @@ const init = async () => {
         {
             // Delete product
             method: 'DELETE',
-            path: '/product/{code}',
+            path: '/product/{id}',
             config: {
                 handler: async (request, h) => {
-                    const { code } = request.params
+                    const { id } = request.params
                     try {
-                        await db.query("DELETE FROM products where sku=$1", [code])
+                        await db.query("DELETE FROM products where id=$1", [id])
                         return h.response({ error: false, msg: 'data has been deleted!' })
                     } catch (error) {
                         return h.response({ error: true, mgs: 'delete failed' })
@@ -242,6 +237,7 @@ const init = async () => {
 
     server.route([
         {
+            // List
             method: 'GET',
             path: '/transaction',
             config: {
@@ -265,40 +261,75 @@ const init = async () => {
             }
         },
         {
+            // Detail
+            method: 'GET',
+            path: '/transaction/{id}',
+            config: {
+                handler: async (request, h) => {
+                    try {
+                        const { id } = request.params
+                        const data = await db.query("SELECT * FROM transactions WHERE id=$1", [id])
+                        return h.response({
+                            error: false,
+                            data: data.rows
+                        })
+                    } catch (error) {
+                        return h.response({
+                            error: true,
+                            msg: 'failed'
+                        })
+                    }
+                },
+                auth: {
+                    strategy: 'strategy',
+                }
+            }
+        },
+        {
+            // Create
             method: "POST",
             path: "/transaction",
             config: {
                 handler: async (request, h) => {
                     try {
-                        const { sku, qty } = request.payload
-                        let res = await db.query('SELECT stock,price FROM products WHERE sku=$1', [sku])
-                        let { stock, price } = res.rows[0]
+                        const { productId, qty } = request.payload
+                        let res = await db.query('SELECT sku,stock,price FROM products WHERE id=$1', [productId])
+
+                        if (!res.rows[0]) {
+                            return h.response({
+                                error: true,
+                                msg: 'Product not found'
+                            })
+                        }
+
+                        let { sku, stock, price } = res.rows[0]
                         if (stock <= 0) {
                             return h.response({ error: true, msg: 'stock kurang' })
                         }
-
                         try {
                             await db.query('BEGIN')
                             await db.query('UPDATE products SET stock=stock-$1', [qty])
-                            await db.query('INSERT INTO transactions (sku,qty,amount) VALUES($1,$2,$3)', [sku, qty, qty * price])
+                            await db.query('INSERT INTO transactions (productid,sku,qty,amount) VALUES($1,$2,$3,$4)', [productId, sku, qty, qty * price])
 
                             await db.query('COMMIT')
                         } catch (error) {
                             await db.query('ROLLBACK')
-                            return h.response({ error: true, msg: 'Rollback' })
+                            console.log(error)
+                            return h.response({ error: true, msg: 'Failed' })
                         }
-
-
-
-                        return h.response({ res: res.rows[0] })
+                        return h.response({ error: false, msg: 'Success' })
                     } catch (error) {
                         console.log(error)
                         return h.response({ error: true, msg: 'error' })
                     }
+                },
+                auth: {
+                    strategy: 'strategy',
                 }
             }
         },
         {
+            // Update
             method: 'PUT',
             path: '/transaction/{id}',
             config: {
@@ -306,7 +337,7 @@ const init = async () => {
                     try {
                         const id = request.params.id
                         const { sku, qty } = request.payload
-                        const tx = await db.query('SELECT a.*,b.price,b.stock FROM transactions a JOIN products b ON b.sku=a.sku WHERE id=$1', [id])
+                        const tx = await db.query('SELECT a.*,b.price,b.stock FROM transactions a JOIN products b ON b.sku=a.sku WHERE a.id=$1', [id])
                         const data = tx.rows[0]
 
                         if (!data) {
@@ -341,6 +372,50 @@ const init = async () => {
                         })
                     }
 
+                },
+                auth: {
+                    strategy: 'strategy',
+                }
+            }
+        },
+        {
+            // Delete
+            method: 'DELETE',
+            path: '/transaction/{id}',
+            config: {
+
+                handler: async (request, h) => {
+                    const { id } = request.params
+                    const tx = await db.query("SELECT * FROM transactions WHERE id=$1", [id])
+                    const data = tx.rows[0]
+                    if (!data) {
+                        return h.response({
+                            error: true,
+                            msg: 'Transaction not found'
+                        })
+                    }
+
+                    try {
+                        await db.query("BEGIN")
+                        await db.query("UPDATE products SET stock=stock+$1", [data.qty])
+                        await db.query("DELETE FROM transactions WHERE id=$1", [id])
+                        await db.query("COMMIT")
+                    } catch (error) {
+                        await db.query("ROLLBACK")
+                        return h.response({
+                            error: true,
+                            msg: 'Delete Failed'
+                        })
+                    }
+
+                    return h.response({
+                        error: true,
+                        msg: 'Transaction has been deleted!'
+                    })
+
+                },
+                auth: {
+                    strategy: 'strategy',
                 }
             }
         }
@@ -350,11 +425,11 @@ const init = async () => {
 
     await server.start()
     console.log('Server runing on %s', server.info.uri)
+
+    return server
 }
 
 process.on('unhandledRejection', (err) => {
     console.log(err)
     process.exit(1)
 })
-
-init()
