@@ -1,14 +1,15 @@
 const pgp = require('pg-promise')(/* initialization options */);
 
 const db = pgp({
+    host: 'localhost',
     database: 'example',
     port: 5432,
-    user: 'example', // any admin user
-    password: 'example'
+    user: 'root', // any admin user
+    password: 'root'
 });
 
 async function create() {
-    await db.none('CREATE DATABASE $1:name', ['project']);
+    await db.none('CREATE DATABASE $1:name', ['my_project']);
 }
 
 create()
