@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken')
 const axios = require('axios')
 const db = require('./config/db')
 const { parseString } = require('xml2js');
+const limit = 10;
 
 const parser = (xml) => {
     return new Promise((resolve, reject) => {
@@ -130,10 +131,13 @@ exports.init = async () => {
             path: '/product',
             config: {
                 handler: async (request, h) => {
+                    const page = request.query.page || 1
+                    const offset = page == 1 ? 0 : (page * limit) - limit
                     try {
-                        const products = await db.query('SELECT * FROM products')
+                        const products = await db.query('SELECT * FROM products ORDER BY id LIMIT $1 OFFSET $2', [limit, offset])
                         return h.response({
                             error: false,
+                            page,
                             data: products.rows
                         })
                     } catch (error) {
@@ -243,7 +247,9 @@ exports.init = async () => {
             config: {
                 handler: async (request, h) => {
                     try {
-                        const data = await db.query("SELECT * FROM transactions")
+                        const page = request.query.page || 1
+                        const offset = page == 1 ? 0 : (page * limit) - limit
+                        const data = await db.query("SELECT * FROM transactions ORDER BY id LIMIT $1 OFFSET $2", [limit, offset])
                         return h.response({
                             error: false,
                             data: data.rows
@@ -420,9 +426,6 @@ exports.init = async () => {
             }
         }
     ])
-
-
-
     await server.start()
     console.log('Server runing on %s', server.info.uri)
 
