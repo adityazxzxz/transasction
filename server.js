@@ -27,6 +27,41 @@ exports.init = async () => {
     })
 
     await server.register(Jwt)
+    await server.register([
+        require('inert'),
+        require('vision'),
+        {
+            plugin: require('hapi-swaggered'),
+            options: {
+                tags: {
+                    'foobar/test': 'Example foobar description'
+                },
+                info: {
+                    title: 'Example API',
+                    description: 'Powered by node, hapi, joi, hapi-swaggered, hapi-swaggered-ui and swagger-ui',
+                    version: '1.0'
+                }
+            }
+        },
+        {
+            plugin: require('hapi-swaggered-ui'),
+            options: {
+                title: 'Example API',
+                path: '/docs',
+                authorization: {
+                    field: 'apiKey',
+                    scope: 'query', // header works as well
+                    // valuePrefix: 'bearer '// prefix incase
+                    defaultValue: 'demoKey',
+                    placeholder: 'Enter your apiKey here'
+                },
+                swaggerOptions: {
+                    validatorUrl: null
+                }
+            }
+        }
+    ])
+
 
     server.auth.strategy('strategy', 'jwt', {
         keys: 'secret',
@@ -49,12 +84,23 @@ exports.init = async () => {
         }
     })
 
+    server.route({
+        path: '/',
+        method: 'GET',
+        handler(request, h) {
+            return h.response().redirect('/docs')
+        }
+    })
+
     server.route([
         {
             // List elevenia
             method: 'GET',
             path: '/elevenia',
             config: {
+                description: 'Get product list from elevenia',
+                notes: 'Returns an array of product',
+                tags: ['api'],
                 handler: async (request, h) => {
                     try {
                         const resp = await axios({
@@ -98,6 +144,9 @@ exports.init = async () => {
             method: 'GET',
             path: '/token',
             config: {
+                description: 'Get access token',
+                notes: 'Returns value of token',
+                tags: ['api'],
                 handler(request, h) {
                     const token = jwt.sign({
                         aud: 'urn:audience:test',
@@ -112,18 +161,6 @@ exports.init = async () => {
                 }
             },
 
-        },
-        {
-            method: 'GET',
-            path: '/secret',
-            config: {
-                handler(request, h) {
-                    return 'secret';
-                },
-                auth: {
-                    strategy: 'strategy',
-                }
-            }
         },
         {
             // List all product
