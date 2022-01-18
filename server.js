@@ -204,9 +204,9 @@ exports.init = async () => {
                         const { sku, name, image, price, description } = request.payload
                         await db.query('INSERT INTO products (sku,name,image,price,description) VALUES ($1,$2,$3,$4,$5)', [sku, name, image, price, description])
 
-                        return h.response({ error: false })
+                        return h.response({ error: false, msg: "Product has been added" })
                     } catch (error) {
-                        return h.response({ error: true })
+                        return h.response({ error: true, msg: "failed create product" })
                     }
                 },
                 auth: {
@@ -222,6 +222,11 @@ exports.init = async () => {
                 description: 'Get Detail Product',
                 notes: 'Returns value of',
                 tags: ['api'],
+                validate: {
+                    params: Joi.object({
+                        id: Joi.number().required().description('id product')
+                    })
+                },
                 handler: async (request, h) => {
                     const { id } = request.params
                     const product = await db.query("SELECT * FROM products WHERE id=$1", [id])
