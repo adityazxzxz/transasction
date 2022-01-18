@@ -2,6 +2,7 @@
 
 const Hapi = require('@hapi/hapi')
 const Jwt = require('@hapi/jwt')
+const Joi = require('joi')
 const jwt = require('jsonwebtoken')
 const axios = require('axios')
 const db = require('./config/db')
@@ -22,8 +23,8 @@ const parser = (xml) => {
 
 exports.init = async () => {
     const server = Hapi.server({
-        port: 3000,
-        host: 'localhost'
+        port: process.env.APP_PORT || 3000,
+        host: process.env.APP_HOST || 'localhost'
     })
 
     await server.register(Jwt)
@@ -33,9 +34,6 @@ exports.init = async () => {
         {
             plugin: require('hapi-swaggered'),
             options: {
-                tags: {
-                    'foobar/test': 'Example foobar description'
-                },
                 info: {
                     title: 'Example API',
                     description: 'Powered by node, hapi, joi, hapi-swaggered, hapi-swaggered-ui and swagger-ui',
@@ -167,6 +165,9 @@ exports.init = async () => {
             method: 'GET',
             path: '/product',
             config: {
+                description: 'List all product',
+                notes: 'page={number}',
+                tags: ['api'],
                 handler: async (request, h) => {
                     const page = request.query.page || 1
                     const offset = page == 1 ? 0 : (page * limit) - limit
@@ -195,6 +196,9 @@ exports.init = async () => {
             method: 'POST',
             path: '/product',
             config: {
+                description: 'Add product',
+                notes: 'Returns value of token',
+                tags: ['api'],
                 handler: async (request, h) => {
                     try {
                         const { sku, name, image, price, description } = request.payload
@@ -215,6 +219,9 @@ exports.init = async () => {
             method: 'GET',
             path: '/product/{id}',
             config: {
+                description: 'Get Detail Product',
+                notes: 'Returns value of',
+                tags: ['api'],
                 handler: async (request, h) => {
                     const { id } = request.params
                     const product = await db.query("SELECT * FROM products WHERE id=$1", [id])
@@ -234,6 +241,9 @@ exports.init = async () => {
             method: 'PUT',
             path: '/product/{id}',
             config: {
+                description: 'Update Product',
+                notes: 'Returns value of',
+                tags: ['api'],
                 handler: async (request, h) => {
                     try {
                         const { id } = request.params
@@ -260,6 +270,9 @@ exports.init = async () => {
             method: 'DELETE',
             path: '/product/{id}',
             config: {
+                description: 'Delete Product',
+                notes: 'Returns value of',
+                tags: ['api'],
                 handler: async (request, h) => {
                     const { id } = request.params
                     try {
@@ -282,6 +295,9 @@ exports.init = async () => {
             method: 'GET',
             path: '/transaction',
             config: {
+                description: 'Get list transactions',
+                notes: 'Returns value of',
+                tags: ['api'],
                 handler: async (request, h) => {
                     try {
                         const page = request.query.page || 1
@@ -308,6 +324,9 @@ exports.init = async () => {
             method: 'GET',
             path: '/transaction/{id}',
             config: {
+                description: 'Get Detail Transaction',
+                notes: 'Returns value of',
+                tags: ['api'],
                 handler: async (request, h) => {
                     try {
                         const { id } = request.params
@@ -333,6 +352,9 @@ exports.init = async () => {
             method: "POST",
             path: "/transaction",
             config: {
+                description: 'Create Transaction',
+                notes: 'Returns value of',
+                tags: ['api'],
                 handler: async (request, h) => {
                     try {
                         const { productId, qty } = request.payload
@@ -376,6 +398,9 @@ exports.init = async () => {
             method: 'PUT',
             path: '/transaction/{id}',
             config: {
+                description: 'Update Transaction',
+                notes: 'Returns value of',
+                tags: ['api'],
                 handler: async (request, h) => {
                     try {
                         const id = request.params.id
@@ -426,7 +451,9 @@ exports.init = async () => {
             method: 'DELETE',
             path: '/transaction/{id}',
             config: {
-
+                description: 'Delete Transaction',
+                notes: 'Returns value of',
+                tags: ['api'],
                 handler: async (request, h) => {
                     const { id } = request.params
                     const tx = await db.query("SELECT * FROM transactions WHERE id=$1", [id])

@@ -46,5 +46,5 @@ exports.up = (pgm) => {
             default: pgm.func('current_timestamp'),
         },
     })
-    pgm.createIndex('transactions', 'productId')
+    pgm.createIndex('transactions', 'productid')
 }
